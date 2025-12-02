@@ -1,135 +1,200 @@
-Hospital ER Analytics Database
+# Hospital ER Analytics Database
+A structured SQL Server database that models Emergency Room (ER) operations, including patients, staff, diagnoses, insurance providers, and visit activity. Designed for analytics, reporting, and realistic healthcare data workflows.
 
-A SQL-Based Healthcare Data System for ER Operations & Analytics
+---
 
-Author: Amy Sauden
-Technologies: SQL Server, ERD Design, Data Modelling, Analytics Views, Role-Based Security
+## 1. Project Overview
+This project represents how Emergency Rooms organise and store clinical and operational data. It uses a fully normalised relational schema, synthetic sample data, analytical SQL views, and role-based access control. The dataset supports common healthcare analysis such as visit history, diagnosis cost, staff workload, and insurance reporting.
 
-🚑 Overview
+---
 
-This project is a complete SQL-based healthcare data system designed to represent how an Emergency Room (ER) manages patients, visits, diagnoses, insurance providers, and staff activity. The database uses a fully normalized relational schema, synthetic data, analytical reporting views, and role-based access controls inspired by real HIPAA-style environments.
+## 2. Entity–Relationship Diagram (ERD)
+The ERD reflects the core relationships between Patient, Staff, Diagnosis, Insurance, and Visit.
 
-The goal is to provide a clean, connected, analytics-ready dataset that reflects real-world hospital workflows and supports insights such as billing, patient history, staff workload, and diagnosis costs.
+Place your ERD image in:
 
-🧠 Purpose of the Project
-
-This project models real ER healthcare operations within a structured SQL environment. It supports consistent tracking of patient visits, billing workflows, diagnosis information, staff assignments, and insurance relationships. The system reflects how hospitals, clinics, and pharmacy benefit systems structure their operational data.
-
-🗂️ Key Features
-
-Normalized Healthcare Data Model for patients, staff, diagnoses, insurance, and visits
-
-Analytics-Ready SQL Views (patient visit history + staff performance)
-
-Synthetic Data Generation for realistic ER workflow simulation
-
-Role-Based Access Control (Admin, Limited, Read-Only)
-
-Clean Architecture matching real EHR and claims systems
-
-Full Documentation Included
-
-📊 Entity–Relationship Diagram (ERD)
-
-Upload the image as:
 /images/ERD_diagram.png
 
+yaml
+Copy code
+
+Display it in the README:
+
+```md
 ![ERD Diagram](images/ERD_diagram.png)
+3. Database Schema (SQL)
+sql
+Copy code
+-- Insurance Table
+CREATE TABLE Insurance (
+    InsuranceID SMALLINT PRIMARY KEY,
+    InsuranceName VARCHAR(25)
+);
 
-🧱 Database Tables
+-- Patient Table
+CREATE TABLE Patient (
+    Patient_ID SMALLINT PRIMARY KEY,
+    Insurance_ID SMALLINT FOREIGN KEY REFERENCES Insurance(InsuranceID),
+    First_Name VARCHAR(60),
+    Last_Name VARCHAR(60),
+    DOB DATE,
+    SSN CHAR(9)
+);
 
-The database includes the following entities:
+-- Staff Table
+CREATE TABLE Staff (
+    Staff_ID SMALLINT PRIMARY KEY,
+    First_Name VARCHAR(60),
+    Last_Name VARCHAR(60),
+    Position VARCHAR(50)
+);
 
-Table	Description
-Insurance	Stores insurance provider information
-Patient	Patient demographics and insurance linkage
-Staff	ER personnel and roles
-Diagnosis	Medical conditions and billing charges
-Visit	Central fact table linking patient, staff, diagnosis, and timestamp
+-- Diagnosis Table
+CREATE TABLE Diagnosis (
+    Diagnosis_ID SMALLINT PRIMARY KEY,
+    Diagnosis VARCHAR(100),
+    Charge DECIMAL(15,5),
+    Diagnosis_Quantity SMALLINT
+);
 
-A full data dictionary is available in the documentation.
+-- Visit Table (Fact Table)
+CREATE TABLE Visit (
+    Visit_ID SMALLINT PRIMARY KEY,
+    Patient_ID SMALLINT FOREIGN KEY REFERENCES Patient(Patient_ID),
+    Visit_Date DATETIME,
+    Staff_ID SMALLINT FOREIGN KEY REFERENCES Staff(Staff_ID),
+    Diagnosis_ID SMALLINT FOREIGN KEY REFERENCES Diagnosis(Diagnosis_ID)
+);
+4. Sample Data (INSERT Statements)
+sql
+Copy code
+-- Insurance Providers
+INSERT INTO Insurance (InsuranceName)
+VALUES ('Aetna'), ('Blue Cross'), ('United Health'), ('Cigna'), ('Humana'),
+('Medicare'), ('MediAssist'), ('CareSource'), ('HealthPlus'), ('Tricare');
 
-🛠️ How to Run This Project
-1️⃣ Create the Database
-CREATE DATABASE ER_Hospital;
-GO
-USE ER_Hospital;
+-- Patients
+INSERT INTO Patient (Insurance_ID, First_Name, Last_Name, DOB, SSN)
+VALUES
+(1,'John','Smith','1990-04-12','123456789'),
+(2,'Maria','Lopez','1985-09-22','234567891'),
+(3,'David','Brown','1979-03-10','345678912'),
+(4,'Sophia','Taylor','1995-07-15','456789123'),
+(5,'Michael','Johnson','1988-11-03','567891234'),
+(6,'Emily','Williams','1999-01-09','678912345'),
+(7,'James','Davis','1993-05-20','789123456'),
+(8,'Olivia','Miller','2000-02-25','891234567'),
+(9,'Daniel','Garcia','1982-12-14','912345678'),
+(10,'Grace','Martinez','1997-08-07','102345678');
 
-2️⃣ Run the Schema File
+-- Staff
+INSERT INTO Staff (First_Name, Last_Name, Position)
+VALUES
+('Robert','King','Doctor'),
+('Anna','Moore','Nurse'),
+('William','Clark','Surgeon'),
+('Jessica','Hall','Receptionist'),
+('Thomas','Allen','Technician'),
+('Isabella','Baker','Nurse'),
+('Andrew','Nelson','Pharmacist'),
+('Megan','Parker','Therapist'),
+('Jacob','Adams','Doctor'),
+('Lily','Scott','Administrator');
 
-01_database_schema.sql
-✔ Creates all tables and relationships
+-- Diagnoses
+INSERT INTO Diagnosis (Diagnosis, Charge, Diagnosis_Quantity)
+VALUES
+('Flu',80,1),('Fracture',500,1),('Migraine',120,2),('Allergy',90,1),
+('Asthma',250,1),('Infection',200,1),('Back Pain',150,1),
+('Sprain',100,1),('Fever',75,1),('Diabetes',300,1);
 
-3️⃣ Load Sample Data
+-- Visit Records
+INSERT INTO Visit (Patient_ID, Visit_Date, Staff_ID, Diagnosis_ID)
+VALUES
+(1,'2025-10-01 09:00:00',1,1),
+(2,'2025-09-15 11:00:00',3,2),
+(3,'2025-09-10 10:30:00',2,3),
+(4,'2025-09-18 14:00:00',5,4),
+(5,'2025-08-25 08:45:00',7,5),
+(6,'2025-09-05 16:00:00',4,6),
+(7,'2025-09-20 12:00:00',8,7),
+(8,'2025-10-02 13:15:00',6,8),
+(9,'2025-09-29 09:45:00',9,9),
+(10,'2025-10-03 15:00:00',10,10);
+5. Analytics Views
+sql
+Copy code
+-- Patient Visit Report
+CREATE VIEW PatientVisitReport AS
+SELECT 
+    p.First_Name, p.Last_Name, p.DOB, p.SSN,
+    v.Visit_Date,
+    s.First_Name AS Staff_First, s.Last_Name AS Staff_Last, s.Position,
+    d.Diagnosis, d.Charge,
+    i.InsuranceName
+FROM Visit v
+JOIN Patient p ON v.Patient_ID = p.Patient_ID
+JOIN Staff s ON v.Staff_ID = s.Staff_ID
+JOIN Diagnosis d ON v.Diagnosis_ID = d.Diagnosis_ID
+JOIN Insurance i ON p.Insurance_ID = i.InsuranceID;
 
-02_insert_data.sql
-✔ Populates synthetic patient, staff, diagnosis, insurance, and visit records
+-- Staff Activity Summary
+CREATE VIEW StaffActivitySummary AS
+SELECT 
+    s.Staff_ID, s.First_Name, s.Last_Name, s.Position,
+    COUNT(v.Visit_ID) AS Total_Visits,
+    SUM(d.Charge) AS Total_Revenue
+FROM Staff s
+LEFT JOIN Visit v ON s.Staff_ID = v.Staff_ID
+LEFT JOIN Diagnosis d ON v.Diagnosis_ID = d.Diagnosis_ID
+GROUP BY s.Staff_ID, s.First_Name, s.Last_Name, s.Position;
+6. Security & Access Control
+sql
+Copy code
+-- Admin User
+CREATE LOGIN ER_Admin WITH PASSWORD='Admin@123';
+CREATE USER ER_Admin_User FOR LOGIN ER_Admin;
+ALTER ROLE db_owner ADD MEMBER ER_Admin_User;
 
-4️⃣ Create Reporting Views
+-- Limited Access User
+CREATE LOGIN ER_Limited WITH PASSWORD='Limited@123';
+CREATE USER ER_Limited_User FOR LOGIN ER_Limited;
+GRANT SELECT, INSERT ON SCHEMA::dbo TO ER_Limited_User;
 
-03_analytics_views.sql
-✔ Builds:
+-- Read-Only User
+CREATE LOGIN ER_ReadOnly WITH PASSWORD='ReadOnly@123';
+CREATE USER ER_ReadOnly_User FOR LOGIN ER_ReadOnly;
+EXEC sp_addrolemember 'db_datareader','ER_ReadOnly_User';
+7. How to Run
+Create the database
 
-PatientVisitReport
+Run the schema file (01_database_schema.sql)
 
-StaffActivitySummary
+Insert data (02_insert_data.sql)
 
-5️⃣ Configure Security
+Create views (03_analytics_views.sql)
 
-04_security_roles.sql
-✔ Adds Admin, Limited-Access, and Read-Only accounts
+Run security script (04_security_roles.sql)
 
-6️⃣ Start Querying
+Query the views:
+
+sql
+Copy code
 SELECT * FROM PatientVisitReport;
 SELECT * FROM StaffActivitySummary;
+8. Project Structure
+pgsql
+Copy code
+/sql
+   01_database_schema.sql
+   02_insert_data.sql
+   03_analytics_views.sql
+   04_security_roles.sql
 
-📁 Repository Structure
-Hospital-ER-Analytics-Database/
-│
-├── sql/
-│   ├── 01_database_schema.sql
-│   ├── 02_insert_data.sql
-│   ├── 03_analytics_views.sql
-│   └── 04_security_roles.sql
-│
-├── images/
-│   └── ERD_diagram.png
-│
-└── docs/
-    └── project_documentation.pdf
+/images
+   ERD_diagram.png
 
-🔍 Analytics Views Included
-PatientVisitReport
-
-Combines patient, staff, insurance, diagnosis, and cost information for complete visit-level analysis.
-
-StaffActivitySummary
-
-Summarizes total visits handled and total revenue generated by each staff member.
-
-🔐 Security & Access Controls
-
-Simulated healthcare-style permissions:
-
-Admin — full access to database
-
-Limited User — can insert & select
-
-Read-Only User — can view data only
-
-🛠️ Future Enhancements
-
-Medication/Treatment tables
-
-Billing & claim submission logic
-
-Power BI dashboards
-
-Severity coding for visits
-
-Machine learning preparation for diagnosis prediction
-
-👤 About the Author
-
-Amy Sauden
-Cybersecurity & Data Technology student passionate about healthcare analytics, SQL system design, and building real-world data models.
+/docs
+   project_documentation.pdf
+9. Author
+Amy Sauden – Cybersecurity & Data Technology
