@@ -19,7 +19,7 @@ The database is designed to reflect how real hospitals and clinics structure the
 
 ## 📊 ER Diagram
 This diagram shows how all tables are connected in the database.
-![ERD Diagram](images/EDR_diagram.png)
+![ERD Diagram](images/ERD_diagram.png)
 
 
 ---
